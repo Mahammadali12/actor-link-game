@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actor Link — Single File</title>
+  <style>
+    :root { --bg:#0b1020; --panel:#121833; --text:#eaf1ff; --muted:#9fb0cf; }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:radial-gradient(1200px 800px at 20% 0%,#151a38 0%,var(--bg) 60%);color:var(--text);display:grid;grid-template-rows:auto 1fr auto;gap:16px}
+    header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,#101633 0%,#0d122a 100%);border-bottom:1px solid #1e264c}
+    .container{max-width:1100px;margin:0 auto;padding:0 16px 24px;width:100%}
+    .hud{display:grid;gap:12px;grid-template-columns:repeat(4,1fr)} .card{background:#121833;border:1px solid #1e264c;border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted);background:#0e1430;border:1px solid #1f2752}
+    .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .label{font-size:12px;color:var(--muted);letter-spacing:.4px;text-transform:uppercase} .value{font-size:20px}
+    .btn{appearance:none;border:none;cursor:pointer;background:linear-gradient(180deg,#1a2250,#12183b);color:var(--text);padding:10px 14px;border-radius:12px;font-weight:600;border:1px solid #27306b}
+    .board{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .panel-title{font-size:14px;color:var(--muted);margin-bottom:10px;letter-spacing:.3px;text-transform:uppercase}
+    .list{display:grid;gap:8px} .choice{padding:12px;background:#0e1430;border:1px solid #242d62;border-radius:10px;cursor:pointer}
+    .path{display:grid;gap:10px;max-height:320px;overflow:auto;padding-right:6px} .crumb{display:grid;gap:4px;font-size:14px} .small{font-size:12px;color:var(--muted)}
+    @media(max-width:900px){.hud{grid-template-columns:1fr 1fr}.board{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎬 Actor Link — Single File</h1>
+    <div class="row">
+      <button id="newGameBtn" class="btn">New Game</button>
+      <button id="undoBtn" class="btn">Undo</button>
+      <button id="giveUpBtn" class="btn">Give Up</button>
+    </div>
+  </header>
+  <div class="container">
+    <section class="hud">
+      <div class="card"><div class="label">Start Actor</div><div id="startActor" class="value">—</div><span class="pill" id="movesPill">Moves: 0</span></div>
+      <div class="card"><div class="label">Current Actor</div><div id="currentActor" class="value">—</div><div class="row"><span class="pill" id="phasePill">Pick a movie</span><span class="pill" id="timerPill">00:00</span></div></div>
+      <div class="card"><div class="label">Target Actor</div><div id="targetActor" class="value">—</div><span class="pill" id="statusPill">Playing…</span></div>
+      <div class="card"><div class="label">Hint</div><div id="hintBox" class="value" style="font-size:16px">Use movies to hop between co‑actors.</div></div>
+    </section>
+    <main>
+      <section class="board">
+        <div class="card"><div class="panel-title">Movies with <span id="moviesOf">—</span></div><div id="moviesList" class="list"></div></div>
+        <div class="card"><div class="panel-title">Co‑actors in <span id="castOf">—</span></div><div id="actorsList" class="list"></div></div>
+      </section>
+      <section class="card"><div class="panel-title">Your Path</div><div id="pathList" class="path"></div></section>
+    </main>
+  </div>
+  <footer style="padding:12px 16px;color:#9fb0cf">Single‑file mode (file://) — placeholder JSON only.</footer>
+  <script>
+    const GRAPH={movies:[{id:'m1',title:'Nebula Nights',year:2016,cast:['Ava Cole','Mason Reed','Liam Chen']},{id:'m2',title:'Harbor of Echoes',year:2018,cast:['Ava Cole','Noah Silva','Priya Rao']},{id:'m3',title:'Paper Planets',year:2020,cast:['Mason Reed','Sofia Marin','Noah Silva']},{id:'m4',title:'Cinder Alley',year:2012,cast:['Liam Chen','Zoë Hart','Ibrahim Malik']},{id:'m5',title:'Silent Frequency',year:2019,cast:['Priya Rao','Zoë Hart','Ethan Cruz']},{id:'m6',title:'Violet Atlas',year:2015,cast:['Sofia Marin','Ethan Cruz','Ibrahim Malik']},{id:'m7',title:'North of August',year:2021,cast:['Ava Cole','Zoë Hart','Ibrahim Malik']},{id:'m8',title:'Fathom',year:2011,cast:['Noah Silva','Ethan Cruz']},{id:'m9',title:'Glass Orchard',year:2017,cast:['Liam Chen','Priya Rao']},{id:'m10',title:'Thaw',year:2014,cast:['Sofia Marin','Ava Cole']},]};
+    const actorToMovies=new Map(); for(const mv of GRAPH.movies){ for(const a of mv.cast){ if(!actorToMovies.has(a)) actorToMovies.set(a,new Set()); actorToMovies.get(a).add(mv.id); }}
+    const moviesById=new Map(GRAPH.movies.map(m=>[m.id,m])); const ALL_ACTORS=Array.from(actorToMovies.keys());
+    const state={start:null,current:null,target:null,phase:'pick-movie',selectedMovie:null,path:[],moves:0,timerStart:0,timerInt:null};
+    function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+    function pathExists(s,t){ if(s===t) return true; const seenA=new Set([s]); const seenM=new Set(); const q=[s]; while(q.length){ const actor=q.shift(); for(const mid of (actorToMovies.get(actor)||[])){ if(seenM.has(mid)) continue; seenM.add(mid); const mv=moviesById.get(mid); for(const a of mv.cast){ if(a===t) return true; if(!seenA.has(a)){ seenA.add(a); q.push(a);} } } } return false; }
+    function startTimer(){ if(state.timerInt) clearInterval(state.timerInt); state.timerStart=Date.now(); state.timerInt=setInterval(render,250); }
+    function stopTimer(){ if(state.timerInt) clearInterval(state.timerInt); state.timerInt=null; }
+    function newGame(){ let s,t,tries=100; do{ s=rnd(ALL_ACTORS); do{ t=rnd(ALL_ACTORS);}while(t===s);}while(!pathExists(s,t)&&--tries>0); state.start=s; state.current=s; state.target=t; state.phase='pick-movie'; state.selectedMovie=null; state.path=[{type:'actor',value:s}]; state.moves=0; startTimer(); render(); }
+    function getElapsed(){ const ms=Date.now()-state.timerStart; const secs=Math.floor(ms/1000); const m=String(Math.floor(secs/60)).padStart(2,'0'); const s=String(secs%60).padStart(2,'0'); return `${m}:${s}`; }
+    function render(){ qs('#startActor').textContent=state.start??'—'; qs('#currentActor').textContent=state.current??'—'; qs('#targetActor').textContent=state.target??'—'; qs('#movesPill').textContent=`Moves: ${state.moves}`; qs('#phasePill').textContent=state.phase==='pick-movie'?'Pick a movie':state.phase==='pick-actor'?'Pick a co‑actor':state.phase; qs('#timerPill').textContent=getElapsed(); qs('#moviesOf').textContent=state.current??'—'; qs('#castOf').textContent=selectedMovieTitle();
+      const status=qs('#statusPill'); status.textContent=state.phase==='won'?'You reached the target! 🎉':state.phase==='gave-up'?'Revealed a winning clue. Try again!':'Playing…'; status.style.background=state.phase==='won'?'linear-gradient(180deg,#165d3e,#0f3b2e)':state.phase==='gave-up'?'linear-gradient(180deg,#6b1a1a,#3a0e0e)':'#0e1430'; status.style.border=state.phase==='won'?'1px solid #1f7a5e':state.phase==='gave-up'?'1px solid #8b1f1f':'1px solid #1f2752';
+      const moviesBox=qs('#moviesList'); moviesBox.innerHTML=''; if(state.phase!=='pick-movie'){ moviesBox.innerHTML=pill('Choose a co‑actor first…'); } else { const list=getMoviesOf(state.current); if(!list.length){ moviesBox.innerHTML=pill('No movies found.'); } else { for(const mv of list){ const b=document.createElement('button'); b.className='choice'; b.innerHTML=`<div class="title">${mv.title}</div><div class="sub">${mv.year} • Cast: ${mv.cast.join(', ')}</div>`; b.onclick=()=>{ state.selectedMovie=mv.id; state.phase='pick-actor'; render(); }; moviesBox.appendChild(b); } } }
+      const actorsBox=qs('#actorsList'); actorsBox.innerHTML=''; if(state.phase!=='pick-actor'){ actorsBox.innerHTML=pill('Pick a movie to see co‑actors…'); } else { const cast=getCastOf(state.selectedMovie); if(!cast.length){ actorsBox.innerHTML=pill('No co‑actors.'); } else { for(const a of cast){ const b=document.createElement('button'); b.className='choice'; b.innerHTML=`<div class="title">${a}</div><div class="sub">from "${selectedMovieTitle()}"</div>`; b.onclick=()=>hopToActor(a); actorsBox.appendChild(b); } } }
+      const pathBox=qs('#pathList'); pathBox.innerHTML=''; for(const st of state.path){ const d=document.createElement('div'); d.className='crumb'; d.innerHTML=st.type==='actor'?`<div>🧑‍🎤 <strong>${st.value}</strong></div>`:`<div>🎞️ <strong>${st.value}</strong></div><div class="small">via movie</div>`; pathBox.appendChild(d); } }
+    function selectedMovieTitle(){ const mv=moviesById.get(state.selectedMovie); return mv?mv.title:'—'; }
+    function getMoviesOf(actor){ return Array.from(actorToMovies.get(actor)||[]).map(id=>moviesById.get(id)); }
+    function getCastOf(movieId){ const mv=moviesById.get(movieId); if(!mv) return []; return mv.cast.filter(a=>a!==state.current); }
+    function hopToActor(next){ const mv=moviesById.get(state.selectedMovie); if(!mv) return; state.path.push({type:'movie',value:mv.title}); state.path.push({type:'actor',value:next}); state.current=next; state.moves+=1; if(state.current===state.target){ state.phase='won'; stopTimer(); } else { state.phase='pick-movie'; state.selectedMovie=null; } render(); }
+    function pill(t){ return `<div class="pill">${t}</div>`; } function qs(s){ return document.querySelector(s); }
+    document.getElementById('newGameBtn').onclick=()=>newGame(); document.getElementById('undoBtn').onclick=()=>{ if(state.phase==='won'||state.path.length<3) return; state.path.pop(); state.path.pop(); state.current=state.path[state.path.length-1].value; state.moves=Math.max(0,state.moves-1); state.phase='pick-movie'; state.selectedMovie=null; render(); }; document.getElementById('giveUpBtn').onclick=()=>{ state.phase='gave-up'; stopTimer(); render(); };
+    newGame();
+  </script>
+</body>
+</html>

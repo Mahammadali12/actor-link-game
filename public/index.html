@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Actor Link — Movie Hops</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>🎬 Actor Link — Find the Path</h1>
+    <div class="row">
+      <button id="newGameBtn" class="btn">New Game</button>
+      <button id="undoBtn" class="btn secondary">Undo</button>
+      <button id="giveUpBtn" class="btn danger">Give Up</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hud">
+      <div class="card target-box">
+        <div class="label">Start Actor</div>
+        <div id="startActor" class="value">—</div>
+        <span class="pill" id="movesPill">Moves: 0</span>
+      </div>
+      <div class="card target-box">
+        <div class="label">Current Actor</div>
+        <div id="currentActor" class="value">—</div>
+        <div class="row">
+          <span class="pill" id="phasePill">Pick a movie</span>
+          <span class="pill" id="timerPill">00:00</span>
+        </div>
+      </div>
+      <div class="card target-box">
+        <div class="label">Target Actor</div>
+        <div id="targetActor" class="value">—</div>
+        <span class="pill" id="statusPill">Playing…</span>
+      </div>
+      <div class="card target-box">
+        <div class="label">Hint</div>
+        <div id="hintBox" class="value" style="font-size:16px">Use movies to hop between co‑actors.</div>
+      </div>
+    </section>
+
+    <main>
+      <section class="board">
+        <div class="card">
+          <div class="panel-title">Movies with <span id="moviesOf">—</span></div>
+          <div id="moviesList" class="list"></div>
+        </div>
+        <div class="card">
+          <div class="panel-title">Co‑actors in <span id="castOf">—</span></div>
+          <div id="actorsList" class="list"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="panel-title">Your Path</div>
+        <div id="pathList" class="path"></div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="app-footer">
+    Built with placeholder JSON now — wire to real data later.
+  </footer>
+
+  <script type="module" src="../src/main.js"></script>
+</body>
+</html>
