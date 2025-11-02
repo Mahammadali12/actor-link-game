@@ -10,36 +10,38 @@ This package includes **two ways to run**:
 
 **Project structure**
 ```
-/public/
-  index.html
-  styles.css
+index.html              # main entry point (served at GitHub Pages root)
+styles.css              # UI styles for the module build
 /src/
   data/graph.js         # placeholder JSON (swap for real data later)
   game/engine.js        # state, BFS, timer, moves, hints
   game/ui.js            # rendering
   main.js               # wires UI and engine
+/public/
+  index_singlefile.html # legacy no-build bundle for quick testing
 ```
 
 **Run locally (no build tools needed)**
-1. Open a terminal in the project root (the folder that contains `/public` and `/src`).
+1. Open a terminal in the project root (the folder that contains `index.html` and `/src`).
 2. Start a static server, e.g.:
    - **Python 3**: `python -m http.server 8000`
    - **Node.js**: `npx serve .` (or `npx http-server .`)
-   - **VS Code**: install *Live Server*, right‑click `/public/index.html` → **Open with Live Server**
-3. Open: `http://localhost:8000/public/`
+   - **VS Code**: install *Live Server*, right‑click `index.html` → **Open with Live Server**
+3. Open: `http://localhost:8000/`
 
 > Why a server? ES Modules (`<script type="module">`) are blocked on `file://` (origin `null`) by browsers. A small local server fixes CORS.
-
-**Tip**: If you serve `/public` as the web root, change the script line in `/public/index.html` to:
-```html
-<script type="module" src="/src/main.js"></script>
-```
 
 ---
 
 ## 2) Single‑file mode (for double‑click testing)
 
 Open `/public/index_singlefile.html` directly with `file://`. It inlines everything (no modules), so it runs without a server. Uses the same placeholder JSON graph.
+
+---
+
+## GitHub Pages deployment
+
+The repository ships with a GitHub Actions workflow that publishes the site to **GitHub Pages** from the `main` branch. Push to `main` (or trigger the workflow manually) and the action will upload a static bundle containing `index.html`, `styles.css`, and the `/src` modules. The deployed site lives at `https://<your-username>.github.io/actor-link-game/` (replace with your GitHub handle).
 
 ---
 
